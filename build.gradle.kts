@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "net.voxelpi.event"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
@@ -47,7 +47,7 @@ tasks {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 val javadocJar by tasks.register<Jar>("dokkaJavadocJar") {
