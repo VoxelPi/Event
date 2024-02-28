@@ -16,6 +16,11 @@ sealed interface EventScope {
     fun <T : Any> handleEvent(type: KType, priority: Int = 0, callback: (T) -> Unit): EventHandler<T>
 
     /**
+     * Registers all annotated event handlers.
+     */
+    fun registerSubscriptions(subscriptions: Any)
+
+    /**
      * Unregisters the given [handler] from this scope.
      */
     fun unregister(handler: EventHandler<*>)

@@ -1,5 +1,6 @@
 package net.voxelpi.event
 
+import net.voxelpi.event.annotation.Subscribe
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
@@ -110,5 +111,38 @@ class EventScopeImplTest {
         subScope.post("Test")
         assertEquals(false, handledMain)
         assertEquals(true, handledSub)
+    }
+
+    @Test
+    fun `test annotations`() {
+        val scope = eventScope()
+
+        class Test {
+            var counterA = 0
+            var counterB = 0
+
+            @Subscribe
+            @Suppress("UNUSED_PARAMETER")
+            fun handleA(event: Any) {
+                counterA += 1
+            }
+
+            @Subscribe
+            @Suppress("UNUSED_PARAMETER")
+            fun handleB(event: String) {
+                counterB += 1
+            }
+        }
+
+        val test = Test()
+        scope.registerSubscriptions(test)
+
+        scope.post(Unit)
+        assertEquals(1, test.counterA)
+        assertEquals(0, test.counterB)
+
+        scope.post("Test")
+        assertEquals(2, test.counterA)
+        assertEquals(1, test.counterB)
     }
 }
