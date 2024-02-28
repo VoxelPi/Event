@@ -1,3 +1,12 @@
 package net.voxelpi.event
 
-interface Cancellable
+/**
+ * An event that can be cancelled.
+ */
+interface Cancellable {
+
+    /**
+     * If the event should be cancelled.
+     */
+    var cancelled: Boolean
+}

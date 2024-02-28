@@ -2,6 +2,9 @@ package net.voxelpi.event
 
 import kotlin.reflect.KType
 
+/**
+ * An event handler instance. Stores the callback and information on about what event should be processed and its priority.
+ */
 sealed interface EventHandler<T : Any> {
 
     /**

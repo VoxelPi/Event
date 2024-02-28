@@ -1,5 +1,8 @@
 package net.voxelpi.event
 
+/**
+ * Default event priority levels.
+ */
 object EventPriorities {
 
     const val EARLIEST = 1000

@@ -3,6 +3,10 @@ package net.voxelpi.event
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
+/**
+ * An event scope. Its purpose is to handle the event bus logic.
+ * It allows to register event handlers, sub scopes, and to post events.
+ */
 sealed interface EventScope {
 
     /**
