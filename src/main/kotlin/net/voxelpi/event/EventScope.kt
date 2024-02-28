@@ -16,9 +16,9 @@ sealed interface EventScope {
     fun <T : Any> handleEvent(type: KType, priority: Int = 0, callback: (T) -> Unit): EventHandler<T>
 
     /**
-     * Registers all annotated event handlers.
+     * Registers all annotated event handlers in a sub scope and returns the generated event scope.
      */
-    fun registerSubscriptions(subscriptions: Any)
+    fun registerSubscriptions(subscriptions: Any): EventScope
 
     /**
      * Unregisters the given [handler] from this scope.
@@ -39,11 +39,7 @@ sealed interface EventScope {
     /**
      * Creates a new event scope and registers it is a sub scope.
      */
-    fun subScope(): EventScope {
-        val scope = eventScope()
-        register(scope)
-        return scope
-    }
+    fun subScope(): EventScope
 }
 
 /**

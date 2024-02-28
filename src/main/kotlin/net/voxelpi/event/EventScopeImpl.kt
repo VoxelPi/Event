@@ -40,8 +40,9 @@ class EventScopeImpl : EventScope {
         return handler
     }
 
-    override fun registerSubscriptions(subscriptions: Any) {
+    override fun registerSubscriptions(subscriptions: Any): EventScopeImpl {
         val typeClass = subscriptions::class
+        val scope = subScope()
 
         // Get all functions that are annotated by Subscribe, take one parameter (plus implicit this parameter) and return Unit.
         val handlerFunctions = typeClass.memberFunctions.filter { function ->
@@ -56,8 +57,10 @@ class EventScopeImpl : EventScope {
             val handler = EventHandlerImpl<Any>(type, priority) { event ->
                 function.call(subscriptions, event)
             }
-            handlers.add(handler)
+            scope.handlers.add(handler)
         }
+
+        return scope
     }
 
     override fun unregister(handler: EventHandler<*>) {
@@ -70,5 +73,11 @@ class EventScopeImpl : EventScope {
 
     override fun unregister(scope: EventScope) {
         childScopes.remove(scope as EventScopeImpl)
+    }
+
+    override fun subScope(): EventScopeImpl {
+        val scope = EventScopeImpl()
+        register(scope)
+        return scope
     }
 }

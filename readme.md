@@ -22,18 +22,18 @@ dependencies {
 
 ## Examples
 
-### Creating an event scope.
+### Creating an event scope
 
 Simple example of creating a event scope, registering a callback, 
 and posting an event.
 
 ```kotlin
-// Create event scope.
+// Create the event scope.
 val scope = eventScope()
 
 // Add callback that listens whenever a string is posted.
 scope.on<String> {
-    // Handle event
+    // Handle the event
 }
 
 // Post event.
@@ -41,25 +41,51 @@ scope.post("Hello, World!")
 
 ```
 
-### Creating an sub event scope.
+### Creating an sub event scope
 
 Example of creating a sub scope.
 
 ```kotlin
-// Create event scope.
+// Create the event scopes.
 val scope = eventScope()
 val subScope = scope.subScope()
 
 // Register callbacks.
 scope.on<String> {
-    // Handle event
+    // Handle the event
 }
 subScope.on<String> {
-    // Handle event
+    // Handle the event
 }
 
 // Post event.
 scope.post("Handled by both handlers.")
 subScope.post("Only handled by sub handler.")
+
+```
+
+### Using annotations
+
+Example of using annotations.
+
+```kotlin
+// Create the event scope.
+val scope = eventScope()
+
+// Define class.
+class HandlerClass {
+    
+    @Subscribe
+    fun handle(event: String) {
+        // Handle the event.
+    }
+}
+
+// Register subscriptions.
+val subscriptions = HandlerClass()
+scope.registerSubscriptions(subscriptions)
+
+// Post event.
+scope.post("Annotations!")
 
 ```
