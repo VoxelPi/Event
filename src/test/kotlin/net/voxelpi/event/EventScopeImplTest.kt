@@ -3,6 +3,7 @@ package net.voxelpi.event
 import net.voxelpi.event.annotation.Subscribe
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class EventScopeImplTest {
 
@@ -91,7 +92,7 @@ class EventScopeImplTest {
     @Test
     fun `test child scopes`() {
         val scope = eventScope()
-        val subScope = scope.subScope()
+        val subScope = scope.createSubScope()
 
         var handledMain = false
         scope.on<Any> { _ ->
@@ -135,12 +136,22 @@ class EventScopeImplTest {
         }
 
         val test = Test()
-        scope.registerSubscriptions(test)
+        val subScope = scope.registerAnnotated(test)
+        assertNotNull(subScope)
+
+        val scope2 = scope.annotatedSubScope(test)
+        assertEquals(subScope, scope2)
 
         scope.post(Unit)
         assertEquals(1, test.counterA)
         assertEquals(0, test.counterB)
 
+        scope.post("Test")
+        assertEquals(2, test.counterA)
+        assertEquals(1, test.counterB)
+
+        // Check unregister
+        scope.unregisterAnnotated(test)
         scope.post("Test")
         assertEquals(2, test.counterA)
         assertEquals(1, test.counterB)

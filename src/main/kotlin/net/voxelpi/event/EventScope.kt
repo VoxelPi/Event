@@ -16,11 +16,6 @@ sealed interface EventScope {
     fun <T : Any> handleEvent(type: KType, priority: Int = 0, callback: (T) -> Unit): EventHandler<T>
 
     /**
-     * Registers all annotated event handlers in a sub scope and returns the generated event scope.
-     */
-    fun registerSubscriptions(subscriptions: Any): EventScope
-
-    /**
      * Unregisters the given [handler] from this scope.
      */
     fun unregister(handler: EventHandler<*>)
@@ -39,14 +34,36 @@ sealed interface EventScope {
     /**
      * Creates a new event scope and registers it is a sub scope.
      */
-    fun subScope(): EventScope
+    fun createSubScope(): EventScope
+
+    /**
+     * Adds all methods of the given [instance] that are annotated with the [net.voxelpi.event.annotation.Subscribe] annotation
+     * as event handlers to a new sub scope of this scope.
+     *
+     * Only methods that are annotated with the [net.voxelpi.event.annotation.Subscribe] annotation,
+     * take exactly one parameter and return void.
+     *
+     * @return the created sub scope.
+     */
+    fun registerAnnotated(instance: Any): EventScope
+
+    /**
+     * Unregisters the sub scope associated with the given [instance] from this event scope.
+     * If this scope has no sub scope that is associated with the given [instance] nothing happens.
+     */
+    fun unregisterAnnotated(instance: Any)
+
+    /**
+     * Returns the sub scope associated with the given [instance], or null if no such sub scope exists.
+     */
+    fun annotatedSubScope(instance: Any): EventScope?
 }
 
 /**
  * Creates a new event scope.
  */
 fun eventScope(): EventScope {
-    return EventScopeImpl()
+    return EventScopeImpl(null)
 }
 
 /**
