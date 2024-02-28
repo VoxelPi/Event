@@ -3,15 +3,15 @@ package net.voxelpi.event
 /**
  * Default event priority levels.
  */
-object EventPriorities {
+public object EventPriorities {
 
-    const val EARLIEST = 1000
+    public const val EARLIEST: Int = 1000
 
-    const val EARLY = 100
+    public const val EARLY: Int = 100
 
-    const val NORMAL = 0
+    public const val NORMAL: Int = 0
 
-    const val LATE = -100
+    public const val LATE: Int = -100
 
-    const val LATEST = -1000
+    public const val LATEST: Int = -1000
 }

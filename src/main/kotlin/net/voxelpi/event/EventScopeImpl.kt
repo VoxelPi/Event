@@ -7,7 +7,7 @@ import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.typeOf
 
-class EventScopeImpl(
+internal class EventScopeImpl(
     private val annotatedInstance: Any?,
 ) : EventScope {
 
