@@ -5,24 +5,24 @@ import kotlin.reflect.typeOf
 
 /**
  * An event scope. Its purpose is to handle the event bus logic.
- * It allows to register event handlers, sub scopes, and to post events.
+ * It allows to register event subscribers, sub scopes, and to post events.
  */
 public sealed interface EventScope {
 
     /**
-     * Post the given [event] to all handlers of this event scope and its sub scopes.
+     * Post the given [event] to all subscribers of this event scope and its sub scopes.
      */
     public fun postEvent(event: Any, eventType: KType)
 
     /**
-     * Registers an event handler for events of the given [type] with the given [priority] and [callback].
+     * Registers an event subscribers for events of the given [type] with the given [priority] and [callback].
      */
-    public fun <T : Any> handleEvent(type: KType, priority: Int = 0, callback: (T) -> Unit): EventHandler<T>
+    public fun <T : Any> handleEvent(type: KType, priority: Int = 0, callback: (T) -> Unit): EventSubscriber<T>
 
     /**
-     * Unregisters the given [handler] from this scope.
+     * Unregisters the given [subscriber] from this scope.
      */
-    public fun unregister(handler: EventHandler<*>)
+    public fun unregister(subscriber: EventSubscriber<*>)
 
     /**
      * Registers the given [scope] as a sub scope.
@@ -42,7 +42,7 @@ public sealed interface EventScope {
 
     /**
      * Adds all methods of the given [instance] that are annotated with the [net.voxelpi.event.annotation.Subscribe] annotation
-     * as event handlers to a new sub scope of this scope.
+     * as event subscribers to a new sub scope of this scope.
      *
      * Only methods that are annotated with the [net.voxelpi.event.annotation.Subscribe] annotation,
      * take exactly one parameter and return void.
@@ -71,15 +71,15 @@ public fun eventScope(): EventScope {
 }
 
 /**
- * Post the given [event] to all handlers of this event scope and its sub scopes.
+ * Post the given [event] to all subscribers of this event scope and its sub scopes.
  */
 public inline fun <reified T : Any> EventScope.post(event: T) {
     return postEvent(event, typeOf<T>())
 }
 
 /**
- * Registers an event handler for events of the given type [T] with the given [priority] and [callback].
+ * Registers an event subscriber for events of the given type [T] with the given [priority] and [callback].
  */
-public inline fun <reified T : Any> EventScope.on(priority: Int = 0, noinline callback: (T) -> Unit): EventHandler<T> {
+public inline fun <reified T : Any> EventScope.on(priority: Int = 0, noinline callback: (T) -> Unit): EventSubscriber<T> {
     return handleEvent(typeOf<T>(), priority, callback)
 }

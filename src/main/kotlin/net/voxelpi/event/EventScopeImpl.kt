@@ -12,34 +12,34 @@ internal class EventScopeImpl(
 ) : EventScope {
 
     private val subScopes: MutableList<EventScopeImpl> = mutableListOf()
-    private val handlers: MutableList<EventHandlerImpl<*>> = mutableListOf()
+    private val subscribers: MutableList<EventSubscriberImpl<*>> = mutableListOf()
 
     override fun postEvent(event: Any, eventType: KType) {
-        // Collect all relevant handlers. // TODO: This should not happen every time an event is posted.
-        val handlers = mutableListOf<EventHandlerImpl<*>>()
-        handlers.addAll(this.handlers)
+        // Collect all relevant subscribers. // TODO: This should not happen every time an event is posted.
+        val subscribers = mutableListOf<EventSubscriberImpl<*>>()
+        subscribers.addAll(this.subscribers)
         for (subScope in subScopes) {
-            handlers.addAll(subScope.handlers)
+            subscribers.addAll(subScope.subscribers)
         }
 
-        // Filter handlers
-        val applicableHandlers = handlers
+        // Filter subscribers
+        val applicableSubscribers = subscribers
             .filter { handler ->
                 eventType.isSubtypeOf(handler.type)
             }
-            .sortedByDescending { it.priority }
+            .sortedByDescending { it.postOrder }
 
-        // Post event to handlers.
-        for (handler in applicableHandlers) {
+        // Post event to subscribers.
+        for (subscriber in applicableSubscribers) {
             @Suppress("UNCHECKED_CAST")
-            (handler as EventHandlerImpl<Any>).callback.invoke(event)
+            (subscriber as EventSubscriberImpl<Any>).callback.invoke(event)
         }
     }
 
-    override fun <T : Any> handleEvent(type: KType, priority: Int, callback: (T) -> Unit): EventHandlerImpl<T> {
-        val handler = EventHandlerImpl(type, priority, callback)
-        handlers.add(handler)
-        return handler
+    override fun <T : Any> handleEvent(type: KType, priority: Int, callback: (T) -> Unit): EventSubscriberImpl<T> {
+        val subscriber = EventSubscriberImpl(type, priority, callback)
+        subscribers.add(subscriber)
+        return subscriber
     }
 
     override fun registerAnnotated(instance: Any): EventScope {
@@ -48,19 +48,19 @@ internal class EventScopeImpl(
         register(scope)
 
         // Get all functions that are annotated by Subscribe, take one parameter (plus implicit this parameter) and return Unit.
-        val handlerFunctions = typeClass.memberFunctions.filter { function ->
+        val functions = typeClass.memberFunctions.filter { function ->
             function.findAnnotation<Subscribe>() != null && function.parameters.size == 2 && function.returnType == typeOf<Unit>()
         }
 
-        // Generate handlers
-        for (function in handlerFunctions) {
+        // Generate subscribers
+        for (function in functions) {
             val subscription = function.findAnnotation<Subscribe>()!!
             val priority = subscription.priority
             val type = function.parameters[1].type
-            val handler = EventHandlerImpl<Any>(type, priority) { event ->
+            val subscriber = EventSubscriberImpl<Any>(type, priority) { event ->
                 function.call(instance, event)
             }
-            scope.handlers.add(handler)
+            scope.subscribers.add(subscriber)
         }
 
         return scope
@@ -75,8 +75,8 @@ internal class EventScopeImpl(
         return subScopes.find { it.annotatedInstance == instance }
     }
 
-    override fun unregister(handler: EventHandler<*>) {
-        handlers.remove(handler)
+    override fun unregister(subscriber: EventSubscriber<*>) {
+        subscribers.remove(subscriber)
     }
 
     override fun register(scope: EventScope) {
