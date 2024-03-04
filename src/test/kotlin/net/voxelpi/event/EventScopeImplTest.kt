@@ -208,4 +208,34 @@ class EventScopeImplTest {
         assertEquals(setOf(parentScopeSubscriber, scopeSubscriber), scope.subscribersForSubScopes().toSet())
         assertEquals(setOf(parentScopeSubscriber, siblingScopeSubscriber), siblingScope.subscribersForCurrentScope().toSet())
     }
+
+    @Test
+    fun `diamond scope dependency`() {
+        //   C
+        //  / \
+        // A   B
+        //  \ /
+        //   R
+        val scopeR = eventScope()
+        val scopeA = scopeR.createSubScope()
+        val scopeB = scopeR.createSubScope()
+        val scopeC = scopeA.createSubScope()
+        scopeB.register(scopeC)
+
+        var handledC = false
+        scopeC.on<Any> { handledC = true }
+
+        scopeR.post(Unit)
+        assertEquals(true, handledC)
+
+        scopeA.unregister(scopeC)
+        handledC = false
+        scopeR.post(Unit)
+        assertEquals(true, handledC)
+
+        scopeB.unregister(scopeC)
+        handledC = false
+        scopeR.post(Unit)
+        assertEquals(false, handledC)
+    }
 }
