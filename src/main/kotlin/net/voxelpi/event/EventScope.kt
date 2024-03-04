@@ -61,6 +61,11 @@ public sealed interface EventScope {
      * Returns the sub scope associated with the given [instance], or null if no such sub scope exists.
      */
     public fun annotatedSubScope(instance: Any): EventScope?
+
+    /**
+     * Returns all event types that have at least one subscriber registered in this scope or any of its sub scopes.
+     */
+    public fun subscribedEventTypes(): Set<KType>
 }
 
 /**

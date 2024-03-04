@@ -2,6 +2,7 @@ package net.voxelpi.event
 
 import net.voxelpi.event.annotation.Subscribe
 import org.junit.jupiter.api.Test
+import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -112,6 +113,21 @@ class EventScopeImplTest {
         subScope.post("Test")
         assertEquals(false, handledMain)
         assertEquals(true, handledSub)
+    }
+
+    @Test
+    fun `test subscribed to`() {
+        val scope = eventScope()
+        val subScope = scope.createSubScope()
+
+        scope.on<Int> {  }
+        scope.on<Float> {  }
+        scope.on<Any> {  }
+        subScope.on<String> {  }
+        subScope.on<Float> {  }
+
+        assertEquals(setOf(typeOf<Int>(), typeOf<Float>(), typeOf<Any>(), typeOf<String>()), scope.subscribedEventTypes())
+        assertEquals(setOf(typeOf<Float>(), typeOf<String>()), subScope.subscribedEventTypes())
     }
 
     @Test

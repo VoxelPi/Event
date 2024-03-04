@@ -14,6 +14,15 @@ internal class EventScopeImpl(
     private val subScopes: MutableList<EventScopeImpl> = mutableListOf()
     private val subscribers: MutableList<EventSubscriberImpl<*>> = mutableListOf()
 
+    override fun subscribedEventTypes(): Set<KType> {
+        val types = mutableSetOf<KType>()
+        types.addAll(subscribers.map(EventSubscriberImpl<*>::type))
+        for (subScope in subScopes) {
+            types.addAll(subScope.subscribedEventTypes())
+        }
+        return types
+    }
+
     override fun postEvent(event: Any, eventType: KType) {
         // Collect all relevant subscribers. // TODO: This should not happen every time an event is posted.
         val subscribers = mutableListOf<EventSubscriberImpl<*>>()
