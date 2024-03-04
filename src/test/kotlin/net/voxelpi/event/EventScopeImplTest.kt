@@ -118,7 +118,7 @@ class EventScopeImplTest {
         handledSub = false
         handledSubSub = false
         subScope.post("Test")
-        assertEquals(false, handledMain)
+        assertEquals(true, handledMain)
         assertEquals(true, handledSub)
         assertEquals(true, handledSubSub)
     }

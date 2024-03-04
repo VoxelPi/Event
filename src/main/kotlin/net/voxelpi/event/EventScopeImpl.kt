@@ -4,6 +4,7 @@ import net.voxelpi.event.annotation.Subscribe
 import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.isSupertypeOf
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.typeOf
 
@@ -14,6 +15,51 @@ internal class EventScopeImpl(
     private val parentScopes: MutableList<EventScopeImpl> = mutableListOf()
     private val subScopes: MutableList<EventScopeImpl> = mutableListOf()
     private val subscribers: MutableList<EventSubscriberImpl<*>> = mutableListOf()
+
+    private val subscriberCache: MutableMap<KType, List<EventSubscriberImpl<*>>> = mutableMapOf()
+
+    init {
+        buildCache()
+    }
+
+    private fun buildCache() {
+        val subscribers = subscribersForCurrentScope()
+        subscribers.sortedBy(EventSubscriberImpl<*>::postOrder)
+        val types = subscribers.map(EventSubscriberImpl<*>::type)
+
+        subscriberCache.clear()
+        subscriberCache.putAll(
+            types.associateWith { type ->
+                subscribers.filter { subscriber ->
+                    type.isSubtypeOf(subscriber.type)
+                }
+            }
+        )
+    }
+
+    private fun invalidateCache() {
+        buildCache()
+        for (parentScope in parentScopes) {
+            parentScope.invalidateCacheByChild()
+        }
+        for (childScope in subScopes) {
+            childScope.invalidateCacheByParent()
+        }
+    }
+
+    private fun invalidateCacheByParent() {
+        buildCache()
+        for (childScope in subScopes) {
+            childScope.invalidateCacheByParent()
+        }
+    }
+
+    private fun invalidateCacheByChild() {
+        buildCache()
+        for (parentScope in parentScopes) {
+            parentScope.invalidateCacheByChild()
+        }
+    }
 
     /**
      * Returns all subscribers that should be used by this scope.
@@ -57,23 +103,24 @@ internal class EventScopeImpl(
         return types
     }
 
-    override fun postEvent(event: Any, eventType: KType) {
-        // Collect all relevant subscribers. // TODO: This should not happen every time an event is posted.
-        val subscribers = mutableListOf<EventSubscriberImpl<*>>()
-        subscribers.addAll(this.subscribers)
-        for (subScope in subScopes) {
-            subscribers.addAll(subScope.subscribersForParentScope())
-        }
-
-        // Filter subscribers
-        val applicableSubscribers = subscribers
-            .filter { handler ->
-                eventType.isSubtypeOf(handler.type)
+    fun eventTypeSubscribers(eventType: KType): List<EventSubscriberImpl<*>> {
+        val type = subscriberCache.keys.sortedWith { type1, type2 ->
+            return@sortedWith when {
+                type1.isSubtypeOf(type2) && type1.isSupertypeOf(type2) -> 0
+                type1.isSubtypeOf(type2) -> 1
+                type1.isSupertypeOf(type2) -> -1
+                else -> 0
             }
-            .sortedByDescending { it.postOrder }
+        }.lastOrNull { eventType.isSubtypeOf(it) } ?: return emptyList()
+        return subscriberCache[type] ?: emptyList()
+    }
+
+    override fun postEvent(event: Any, eventType: KType) {
+        // Get relevant subscribers from the cache.
+        val eventSubscribers = eventTypeSubscribers(eventType)
 
         // Post event to subscribers.
-        for (subscriber in applicableSubscribers) {
+        for (subscriber in eventSubscribers) {
             @Suppress("UNCHECKED_CAST")
             (subscriber as EventSubscriberImpl<Any>).callback.invoke(event)
         }
@@ -81,14 +128,13 @@ internal class EventScopeImpl(
 
     override fun <T : Any> handleEvent(type: KType, priority: Int, callback: (T) -> Unit): EventSubscriberImpl<T> {
         val subscriber = EventSubscriberImpl(type, priority, callback)
-        subscribers.add(subscriber)
+        register(subscriber)
         return subscriber
     }
 
     override fun registerAnnotated(instance: Any): EventScope {
         val typeClass = instance::class
         val scope = EventScopeImpl(instance)
-        register(scope)
 
         // Get all functions that are annotated by Subscribe, take one parameter (plus implicit this parameter) and return Unit.
         val functions = typeClass.memberFunctions.filter { function ->
@@ -103,9 +149,11 @@ internal class EventScopeImpl(
             val subscriber = EventSubscriberImpl<Any>(type, priority) { event ->
                 function.call(instance, event)
             }
-            scope.subscribers.add(subscriber)
+            scope.register(subscriber)
         }
 
+        // Register scope.
+        register(scope)
         return scope
     }
 
@@ -118,20 +166,33 @@ internal class EventScopeImpl(
         return subScopes.find { it.annotatedInstance == instance }
     }
 
+    fun register(subscriber: EventSubscriberImpl<*>) {
+        subscribers.add(subscriber)
+        invalidateCache()
+    }
+
     override fun unregister(subscriber: EventSubscriber<*>) {
         subscribers.remove(subscriber)
+        invalidateCache()
     }
 
     override fun register(scope: EventScope) {
         require(scope is EventScopeImpl)
         this.subScopes.add(scope)
         scope.parentScopes.add(this)
+
+        // Update cache.
+        invalidateCache()
     }
 
     override fun unregister(scope: EventScope) {
         require(scope is EventScopeImpl)
         this.subScopes.remove(scope)
         scope.parentScopes.remove(this)
+
+        // Update cache.
+        invalidateCache()
+        scope.invalidateCacheByParent() // Also update cache of now disconnected sub scope.
     }
 
     override fun createSubScope(): EventScopeImpl {
