@@ -14,6 +14,17 @@ internal class EventScopeImpl(
     private val subScopes: MutableList<EventScopeImpl> = mutableListOf()
     private val subscribers: MutableList<EventSubscriberImpl<*>> = mutableListOf()
 
+    /**
+     * Returns all subscribers that should be used by the parent scopes.
+     */
+    private fun subscribersForParentScope(): List<EventSubscriberImpl<*>> {
+        val subscribers = this.subscribers.toMutableList()
+        for (childScope in subScopes) {
+            subscribers.addAll(childScope.subscribersForParentScope())
+        }
+        return subscribers
+    }
+
     override fun subscribedEventTypes(): Set<KType> {
         val types = mutableSetOf<KType>()
         types.addAll(subscribers.map(EventSubscriberImpl<*>::type))
@@ -28,7 +39,7 @@ internal class EventScopeImpl(
         val subscribers = mutableListOf<EventSubscriberImpl<*>>()
         subscribers.addAll(this.subscribers)
         for (subScope in subScopes) {
-            subscribers.addAll(subScope.subscribers)
+            subscribers.addAll(subScope.subscribersForParentScope())
         }
 
         // Filter subscribers

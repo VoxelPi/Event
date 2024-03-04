@@ -91,9 +91,10 @@ class EventScopeImplTest {
     }
 
     @Test
-    fun `test child scopes`() {
+    fun `test sub scopes`() {
         val scope = eventScope()
         val subScope = scope.createSubScope()
+        val subSubScope = subScope.createSubScope()
 
         var handledMain = false
         scope.on<Any> { _ ->
@@ -103,16 +104,23 @@ class EventScopeImplTest {
         subScope.on<Any> { _ ->
             handledSub = true
         }
+        var handledSubSub = false
+        subSubScope.on<Any> { _ ->
+            handledSubSub = true
+        }
 
         scope.post(Unit)
         assertEquals(true, handledMain)
         assertEquals(true, handledSub)
+        assertEquals(true, handledSubSub)
 
         handledMain = false
         handledSub = false
+        handledSubSub = false
         subScope.post("Test")
         assertEquals(false, handledMain)
         assertEquals(true, handledSub)
+        assertEquals(true, handledSubSub)
     }
 
     @Test
