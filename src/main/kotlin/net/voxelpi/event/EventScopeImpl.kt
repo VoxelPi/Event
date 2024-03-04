@@ -11,13 +11,39 @@ internal class EventScopeImpl(
     private val annotatedInstance: Any?,
 ) : EventScope {
 
+    private val parentScopes: MutableList<EventScopeImpl> = mutableListOf()
     private val subScopes: MutableList<EventScopeImpl> = mutableListOf()
     private val subscribers: MutableList<EventSubscriberImpl<*>> = mutableListOf()
 
     /**
+     * Returns all subscribers that should be used by this scope.
+     */
+    fun subscribersForCurrentScope(): List<EventSubscriberImpl<*>> {
+        val subscribers = this.subscribers.toMutableList()
+        for (parentScope in parentScopes) {
+            subscribers.addAll(parentScope.subscribersForSubScopes())
+        }
+        for (childScope in subScopes) {
+            subscribers.addAll(childScope.subscribersForParentScope())
+        }
+        return subscribers
+    }
+
+    /**
+     * Returns all subscribes that should be used by the sub scopes.
+     */
+    fun subscribersForSubScopes(): List<EventSubscriberImpl<*>> {
+        val subscribers = this.subscribers.toMutableList()
+        for (parentScope in parentScopes) {
+            subscribers.addAll(parentScope.subscribersForSubScopes())
+        }
+        return subscribers
+    }
+
+    /**
      * Returns all subscribers that should be used by the parent scopes.
      */
-    private fun subscribersForParentScope(): List<EventSubscriberImpl<*>> {
+    fun subscribersForParentScope(): List<EventSubscriberImpl<*>> {
         val subscribers = this.subscribers.toMutableList()
         for (childScope in subScopes) {
             subscribers.addAll(childScope.subscribersForParentScope())
@@ -26,11 +52,8 @@ internal class EventScopeImpl(
     }
 
     override fun subscribedEventTypes(): Set<KType> {
-        val types = mutableSetOf<KType>()
-        types.addAll(subscribers.map(EventSubscriberImpl<*>::type))
-        for (subScope in subScopes) {
-            types.addAll(subScope.subscribedEventTypes())
-        }
+        val subscribers = subscribersForCurrentScope()
+        val types = subscribers.map(EventSubscriberImpl<*>::type).toSet()
         return types
     }
 
@@ -100,11 +123,15 @@ internal class EventScopeImpl(
     }
 
     override fun register(scope: EventScope) {
-        subScopes.add(scope as EventScopeImpl)
+        require(scope is EventScopeImpl)
+        this.subScopes.add(scope)
+        scope.parentScopes.add(this)
     }
 
     override fun unregister(scope: EventScope) {
-        subScopes.remove(scope as EventScopeImpl)
+        require(scope is EventScopeImpl)
+        this.subScopes.remove(scope)
+        scope.parentScopes.remove(this)
     }
 
     override fun createSubScope(): EventScopeImpl {

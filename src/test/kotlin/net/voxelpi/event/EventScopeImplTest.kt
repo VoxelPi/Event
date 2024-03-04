@@ -124,21 +124,6 @@ class EventScopeImplTest {
     }
 
     @Test
-    fun `test subscribed to`() {
-        val scope = eventScope()
-        val subScope = scope.createSubScope()
-
-        scope.on<Int> {  }
-        scope.on<Float> {  }
-        scope.on<Any> {  }
-        subScope.on<String> {  }
-        subScope.on<Float> {  }
-
-        assertEquals(setOf(typeOf<Int>(), typeOf<Float>(), typeOf<Any>(), typeOf<String>()), scope.subscribedEventTypes())
-        assertEquals(setOf(typeOf<Float>(), typeOf<String>()), subScope.subscribedEventTypes())
-    }
-
-    @Test
     fun `test annotations`() {
         val scope = eventScope()
 
@@ -179,5 +164,30 @@ class EventScopeImplTest {
         scope.post("Test")
         assertEquals(2, test.counterA)
         assertEquals(1, test.counterB)
+    }
+
+    @Test
+    fun `test subscriber collection`() {
+        val parentScope = EventScopeImpl(null)
+        val scope = parentScope.createSubScope()
+        val childScope = scope.createSubScope()
+        val siblingScope = parentScope.createSubScope()
+
+        val parentScopeSubscriber = parentScope.on<Any> { }
+        val scopeSubscriber = scope.on<Number> { }
+        val childScopeSubscriber = childScope.on<Int> { }
+        val siblingScopeSubscriber = siblingScope.on<String> {  }
+
+        // Check that the event types are correctly collected.
+        assertEquals(setOf(typeOf<Any>(), typeOf<Number>(), typeOf<Int>(), typeOf<String>()), parentScope.subscribedEventTypes())
+        assertEquals(setOf(typeOf<Any>(), typeOf<Number>(), typeOf<Int>()), scope.subscribedEventTypes())
+        assertEquals(setOf(typeOf<Any>(), typeOf<Number>(), typeOf<Int>()), childScope.subscribedEventTypes())
+        assertEquals(setOf(typeOf<Any>(), typeOf<String>()), siblingScope.subscribedEventTypes())
+
+        // Check that the event subscribers are correctly collected.
+        assertEquals(setOf<EventSubscriber<*>>(scopeSubscriber, childScopeSubscriber), scope.subscribersForParentScope().toSet())
+        assertEquals(setOf(parentScopeSubscriber, scopeSubscriber, childScopeSubscriber), scope.subscribersForCurrentScope().toSet())
+        assertEquals(setOf(parentScopeSubscriber, scopeSubscriber), scope.subscribersForSubScopes().toSet())
+        assertEquals(setOf(parentScopeSubscriber, siblingScopeSubscriber), siblingScope.subscribersForCurrentScope().toSet())
     }
 }

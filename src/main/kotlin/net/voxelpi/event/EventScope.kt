@@ -63,7 +63,7 @@ public sealed interface EventScope {
     public fun annotatedSubScope(instance: Any): EventScope?
 
     /**
-     * Returns all event types that have at least one subscriber registered in this scope or any of its sub scopes.
+     * Returns all event types that have at least one subscriber registered in this scope or any of its parent or child scopes.
      */
     public fun subscribedEventTypes(): Set<KType>
 }
