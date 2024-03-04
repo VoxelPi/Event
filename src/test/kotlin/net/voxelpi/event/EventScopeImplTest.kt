@@ -91,6 +91,24 @@ class EventScopeImplTest {
     }
 
     @Test
+    fun `test multiple subscribers of same type`() {
+        val scope = eventScope()
+
+        var handledA = false
+        var handledB = false
+        scope.on<Any> { _ ->
+            handledA = true
+        }
+        scope.on<Any> { _ ->
+            handledB = true
+        }
+
+        scope.post(Unit)
+        assertEquals(true, handledA)
+        assertEquals(true, handledB)
+    }
+
+    @Test
     fun `test sub scopes`() {
         val scope = eventScope()
         val subScope = scope.createSubScope()
@@ -176,7 +194,7 @@ class EventScopeImplTest {
         val parentScopeSubscriber = parentScope.on<Any> { }
         val scopeSubscriber = scope.on<Number> { }
         val childScopeSubscriber = childScope.on<Int> { }
-        val siblingScopeSubscriber = siblingScope.on<String> {  }
+        val siblingScopeSubscriber = siblingScope.on<String> { }
 
         // Check that the event types are correctly collected.
         assertEquals(setOf(typeOf<Any>(), typeOf<Number>(), typeOf<Int>(), typeOf<String>()), parentScope.subscribedEventTypes())
