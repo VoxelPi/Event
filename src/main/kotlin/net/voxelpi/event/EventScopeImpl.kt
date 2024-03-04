@@ -82,14 +82,26 @@ internal class EventScopeImpl(
         return subscribers
     }
 
-    override fun postEvent(event: Any, eventType: KType) {
+    @Suppress("UNCHECKED_CAST")
+    override fun postEvent(event: Any, eventType: KType): PostResult {
         // Get relevant subscribers from the cache.
         val eventSubscribers = eventTypeSubscribers(eventType)
 
         // Post event to subscribers.
+        val exceptions = mutableMapOf<EventSubscriber<*>, Throwable>()
         for (subscriber in eventSubscribers) {
-            @Suppress("UNCHECKED_CAST")
-            (subscriber as EventSubscriberImpl<Any>).callback.invoke(event)
+            try {
+                (subscriber as EventSubscriberImpl<Any>).callback.invoke(event)
+            } catch (exception: Exception) {
+                exceptions[subscriber] = exception
+            }
+        }
+
+        // Return result
+        return if (exceptions.isEmpty()) {
+            PostResult.Success
+        } else {
+            PostResult.Failure(exceptions)
         }
     }
 

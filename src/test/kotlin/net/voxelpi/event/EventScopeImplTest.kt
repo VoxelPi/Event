@@ -2,6 +2,7 @@ package net.voxelpi.event
 
 import net.voxelpi.event.annotation.Subscribe
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -237,5 +238,19 @@ class EventScopeImplTest {
         handledC = false
         scopeR.post(Unit)
         assertEquals(false, handledC)
+    }
+
+    @Test
+    fun `test post result`() {
+        val scope = eventScope()
+
+        scope.on<Any> { }
+        assertEquals(true, scope.post(Unit).wasSuccessful())
+
+        scope.on<Any> {
+            throw Exception("Test")
+        }
+        assertEquals(false, scope.post(Unit).wasSuccessful())
+        assertThrows<PostResult.Failure.CombinedException> { scope.post(Unit).throwOnFailure() }
     }
 }

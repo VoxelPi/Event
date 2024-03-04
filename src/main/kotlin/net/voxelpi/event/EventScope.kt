@@ -12,7 +12,7 @@ public sealed interface EventScope {
     /**
      * Post the given [event] to all subscribers of this event scope and its sub scopes.
      */
-    public fun postEvent(event: Any, eventType: KType)
+    public fun postEvent(event: Any, eventType: KType): PostResult
 
     /**
      * Registers an event subscribers for events of the given [type] with the given [priority] and [callback].
@@ -78,7 +78,7 @@ public fun eventScope(): EventScope {
 /**
  * Post the given [event] to all subscribers of this event scope and its sub scopes.
  */
-public inline fun <reified T : Any> EventScope.post(event: T) {
+public inline fun <reified T : Any> EventScope.post(event: T): PostResult {
     return postEvent(event, typeOf<T>())
 }
 
