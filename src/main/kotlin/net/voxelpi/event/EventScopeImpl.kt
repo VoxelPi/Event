@@ -69,7 +69,11 @@ internal class EventScopeImpl(
         return types
     }
 
-    fun eventTypeSubscribers(eventType: KType): TreeSet<EventSubscriberImpl<*>> {
+    override fun collectiveSubscribers(): Collection<EventSubscriber<*>> {
+        return subscribersForCurrentScope()
+    }
+
+    override fun collectiveSubscribersForType(eventType: KType): TreeSet<EventSubscriberImpl<*>> {
         if (eventType in eventTypeCache) {
             return eventTypeCache[eventType]!!
         }
@@ -85,7 +89,7 @@ internal class EventScopeImpl(
     @Suppress("UNCHECKED_CAST")
     override fun postEvent(event: Any, eventType: KType): PostResult {
         // Get relevant subscribers from the cache.
-        val eventSubscribers = eventTypeSubscribers(eventType)
+        val eventSubscribers = collectiveSubscribersForType(eventType)
 
         // Post event to subscribers.
         val exceptions = mutableMapOf<EventSubscriber<*>, Throwable>()

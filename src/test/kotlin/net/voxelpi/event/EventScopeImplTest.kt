@@ -17,6 +17,9 @@ class EventScopeImplTest {
         scope.on<Any> { _ ->
             handled = true
         }
+        assertEquals(1, scope.collectiveSubscribers().size)
+        assertEquals(1, scope.collectiveSubscribersForType<Any>().size)
+        assertEquals(1, scope.collectiveSubscribersForType<Unit>().size)
 
         scope.post(Unit)
         assertEquals(true, handled)
@@ -69,6 +72,9 @@ class EventScopeImplTest {
             handled = true
         }
 
+        assertEquals(1, scope.collectiveSubscribersForType<TypeA>().size)
+        assertEquals(1, scope.collectiveSubscribersForType<TypeB>().size)
+
         scope.post(TypeB())
         assertEquals(true, handled)
     }
@@ -85,6 +91,10 @@ class EventScopeImplTest {
         scope.on<List<Long>> { _ ->
             handledLong = true
         }
+
+        assertEquals(1, scope.collectiveSubscribersForType<List<Long>>().size)
+        assertEquals(1, scope.collectiveSubscribersForType<List<Int>>().size)
+        assertEquals(0, scope.collectiveSubscribersForType<List<Float>>().size)
 
         scope.post(emptyList<Long>())
         assertEquals(false, handledInt)
@@ -103,6 +113,8 @@ class EventScopeImplTest {
         scope.on<Any> { _ ->
             handledB = true
         }
+
+        assertEquals(2, scope.collectiveSubscribersForType<Any>().size)
 
         scope.post(Unit)
         assertEquals(true, handledA)
@@ -127,6 +139,10 @@ class EventScopeImplTest {
         subSubScope.on<Any> { _ ->
             handledSubSub = true
         }
+
+        assertEquals(3, scope.collectiveSubscribersForType<Any>().size)
+        assertEquals(3, subScope.collectiveSubscribersForType<Any>().size)
+        assertEquals(3, subSubScope.collectiveSubscribersForType<Any>().size)
 
         scope.post(Unit)
         assertEquals(true, handledMain)
@@ -166,6 +182,7 @@ class EventScopeImplTest {
         val test = Test()
         val subScope = scope.registerAnnotated(test)
         assertNotNull(subScope)
+        assertEquals(2, scope.collectiveSubscribersForType<String>().size)
 
         val scope2 = scope.annotatedSubScope(test)
         assertEquals(subScope, scope2)

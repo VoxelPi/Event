@@ -66,6 +66,17 @@ public sealed interface EventScope {
      * Returns all event types that have at least one subscriber registered in this scope or any of its parent or child scopes.
      */
     public fun subscribedEventTypes(): Set<KType>
+
+    /**
+     * Returns the collective event subscribers of this event scope and its parent/child scopes.
+     */
+    public fun collectiveSubscribers(): Collection<EventSubscriber<*>>
+
+    /**
+     * Returns the collective event subscribers of this event scope and its parent/child scope,
+     * that listen to events of the given [eventType].
+     */
+    public fun collectiveSubscribersForType(eventType: KType): Collection<EventSubscriber<*>>
 }
 
 /**
@@ -87,4 +98,12 @@ public inline fun <reified T : Any> EventScope.post(event: T): PostResult {
  */
 public inline fun <reified T : Any> EventScope.on(priority: Int = 0, noinline callback: (T) -> Unit): EventSubscriber<T> {
     return handleEvent(typeOf<T>(), priority, callback)
+}
+
+/**
+ * Returns the collective event subscribers of this event scope and its parent/child scope,
+ * that listen to events of the given type [T].
+ */
+public inline fun <reified T : Any> EventScope.collectiveSubscribersForType(): Collection<EventSubscriber<*>> {
+    return collectiveSubscribersForType(typeOf<T>())
 }
