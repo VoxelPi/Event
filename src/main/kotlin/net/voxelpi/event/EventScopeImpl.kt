@@ -332,10 +332,10 @@ internal class EventScopeImpl(
 
     object EventSubscriberComparator : Comparator<EventSubscriberImpl<*>> {
         override fun compare(a: EventSubscriberImpl<*>, b: EventSubscriberImpl<*>): Int {
-            var score = (a.postOrder - b.postOrder) * 4
-            score = score or if (a.uniqueId.leastSignificantBits - b.uniqueId.leastSignificantBits >= 0) 1 else -1
-            score = score or if (a.uniqueId.mostSignificantBits - b.uniqueId.mostSignificantBits >= 0) 2 else -2
-            return score
+            if (a.postOrder != b.postOrder) {
+                return a.postOrder.compareTo(b.postOrder)
+            }
+            return a.uniqueId.compareTo(b.uniqueId)
         }
     }
 }
