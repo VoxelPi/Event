@@ -91,14 +91,19 @@ class EventScopeImplTest {
         scope.on<List<Long>> { _ ->
             handledLong = true
         }
+        var handledNumber = false
+        scope.on<List<Number>> { _ ->
+            handledNumber = true
+        }
 
-        assertEquals(1, scope.collectiveSubscribersForType<List<Long>>().size)
-        assertEquals(1, scope.collectiveSubscribersForType<List<Int>>().size)
-        assertEquals(0, scope.collectiveSubscribersForType<List<Float>>().size)
+        assertEquals(2, scope.collectiveSubscribersForType<List<Long>>().size)
+        assertEquals(2, scope.collectiveSubscribersForType<List<Int>>().size)
+        assertEquals(1, scope.collectiveSubscribersForType<List<Float>>().size)
 
         scope.post(emptyList<Long>())
         assertEquals(false, handledInt)
         assertEquals(true, handledLong)
+        assertEquals(true, handledNumber)
     }
 
     @Test
