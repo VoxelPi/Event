@@ -122,6 +122,12 @@ internal class EventScopeImpl(
     }
 
     override fun registerAnnotated(instance: Any): EventScope {
+        // Return existing sub scope if the instance was already used to create a sub scope of this scope.
+        val existing = annotatedSubScope(instance)
+        if (existing != null) {
+            return existing
+        }
+
         val typeClass = instance::class
         val scope = EventScopeImpl(instance)
 
