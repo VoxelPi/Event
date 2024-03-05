@@ -220,6 +220,15 @@ class EventScopeImplTest {
         assertEquals(setOf(typeOf<Any>(), typeOf<Number>(), typeOf<Int>()), childScope.subscribedEventTypes())
         assertEquals(setOf(typeOf<Any>(), typeOf<String>()), siblingScope.subscribedEventTypes())
 
+        assertEquals(
+            setOf(typeOf<Any>()),
+            parentScope.subscribedEventTypesForChildScope(),
+        )
+        assertEquals(
+            setOf(typeOf<Any>(), typeOf<Number>(), typeOf<Int>(), typeOf<String>()),
+            parentScope.subscribedEventTypesForParentScope(),
+        )
+
         // Check that the event subscribers are correctly collected.
         assertEquals(setOf<EventSubscriber<*>>(scopeSubscriber, childScopeSubscriber), scope.subscribersForParentScope().toSet())
         assertEquals(setOf(parentScopeSubscriber, scopeSubscriber, childScopeSubscriber), scope.subscribersForCurrentScope().toSet())

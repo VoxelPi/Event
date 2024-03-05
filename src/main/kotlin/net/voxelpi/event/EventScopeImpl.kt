@@ -57,12 +57,18 @@ internal class EventScopeImpl(
         return types
     }
 
+    /**
+     * Returns all subscribed event types that should be seen by the parent scopes.
+     */
     fun subscribedEventTypesForParentScope(): Set<KType> {
         val types = subscribers.keys.toMutableSet()
         types.addAll(childSubscriberCache.keys)
         return types
     }
 
+    /**
+     * Returns all subscribed event types that should be seen by the child scopes.
+     */
     fun subscribedEventTypesForChildScope(): Set<KType> {
         val types = subscribers.keys.toMutableSet()
         types.addAll(parentSubscriberCache.keys)
