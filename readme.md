@@ -24,8 +24,8 @@ dependencies {
 
 ### Creating an event scope
 
-Simple example of creating a event scope, registering a callback, 
-and posting an event.
+Event scopes are the fundamental building block of Event.
+They are used to register subscribers and post events.
 
 ```kotlin
 // Create the event scope.
@@ -41,9 +41,9 @@ scope.post("Hello, World!")
 
 ```
 
-### Creating an sub event scope
+### Creating a sub event scope
 
-Example of creating a sub scope.
+Sub scopes can be used to help structure the event bus.
 
 ```kotlin
 // Create the event scopes.
@@ -66,9 +66,12 @@ subScope.post("Only handled by sub handler.")
 
 ### Using annotations
 
-Example of using annotations.
+Event allows to automatically generate event subscriptions from a class
+using the `net.voxelpi.event.annotation.Subscribe` annotation.
 
 ```kotlin
+import net.voxelpi.event.annotation.Subscribe
+
 // Create the event scope.
 val scope = eventScope()
 
@@ -83,7 +86,7 @@ class HandlerClass {
 
 // Register subscriptions.
 val subscriptions = HandlerClass()
-scope.registerSubscriptions(subscriptions)
+scope.registerAnnotated(subscriptions)
 
 // Post event.
 scope.post("Annotations!")
