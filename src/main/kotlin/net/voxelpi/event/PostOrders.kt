@@ -1,7 +1,8 @@
 package net.voxelpi.event
 
 /**
- * Default event priority levels.
+ * Default post orders.
+ * A higher value means, that the subscriber will be called later.
  */
 public object PostOrders {
 

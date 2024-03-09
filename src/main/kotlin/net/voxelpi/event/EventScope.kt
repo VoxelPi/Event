@@ -15,9 +15,9 @@ public sealed interface EventScope {
     public fun postEvent(event: Any, eventType: KType): PostResult
 
     /**
-     * Registers an event subscribers for events of the given [type] with the given [priority] and [callback].
+     * Registers an event subscribers for events of the given [type] with the given [postOrder] and [callback].
      */
-    public fun <T : Any> handleEvent(type: KType, priority: Int = 0, callback: (T) -> Unit): EventSubscriber<T>
+    public fun <T : Any> handleEvent(type: KType, postOrder: Int = 0, callback: (T) -> Unit): EventSubscriber<T>
 
     /**
      * Unregisters the given [subscriber] from this scope.
@@ -94,10 +94,10 @@ public inline fun <reified T : Any> EventScope.post(event: T): PostResult {
 }
 
 /**
- * Registers an event subscriber for events of the given type [T] with the given [priority] and [callback].
+ * Registers an event subscriber for events of the given type [T] with the given [postOrder] and [callback].
  */
-public inline fun <reified T : Any> EventScope.on(priority: Int = 0, noinline callback: (T) -> Unit): EventSubscriber<T> {
-    return handleEvent(typeOf<T>(), priority, callback)
+public inline fun <reified T : Any> EventScope.on(postOrder: Int = 0, noinline callback: (T) -> Unit): EventSubscriber<T> {
+    return handleEvent(typeOf<T>(), postOrder, callback)
 }
 
 /**

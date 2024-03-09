@@ -115,8 +115,8 @@ internal class EventScopeImpl(
         }
     }
 
-    override fun <T : Any> handleEvent(type: KType, priority: Int, callback: (T) -> Unit): EventSubscriberImpl<T> {
-        val subscriber = EventSubscriberImpl(type, priority, UUID.randomUUID(), callback)
+    override fun <T : Any> handleEvent(type: KType, postOrder: Int, callback: (T) -> Unit): EventSubscriberImpl<T> {
+        val subscriber = EventSubscriberImpl(type, postOrder, UUID.randomUUID(), callback)
         register(subscriber)
         return subscriber
     }
@@ -139,9 +139,9 @@ internal class EventScopeImpl(
         // Generate subscribers
         for (function in functions) {
             val subscription = function.findAnnotation<Subscribe>()!!
-            val priority = subscription.priority
+            val postOrder = subscription.postOrder
             val type = function.parameters[1].type
-            val subscriber = EventSubscriberImpl<Any>(type, priority) { event ->
+            val subscriber = EventSubscriberImpl<Any>(type, postOrder) { event ->
                 function.call(instance, event)
             }
             scope.register(subscriber)

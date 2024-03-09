@@ -13,7 +13,7 @@ public sealed interface EventSubscriber<T : Any> {
     public val type: KType
 
     /**
-     * The priority of the subscriber
+     * The post order of the subscriber
      */
     public val postOrder: Int
 
