@@ -3,7 +3,7 @@ junit = "5.10.1"
 
 # Plugins
 dokka = "1.9.10"
-kotlin = "1.9.22"
+kotlin = "1.9.23"
 ktlint = "11.6.1"
 
 [libraries]
