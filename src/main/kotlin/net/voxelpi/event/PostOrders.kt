@@ -2,7 +2,7 @@ package net.voxelpi.event
 
 /**
  * Default post orders.
- * A higher value means, that the subscriber will be called later.
+ * A higher value means, that the subscriber will be called later in the subscriber chain.
  */
 public object PostOrders {
 

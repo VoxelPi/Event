@@ -13,12 +13,14 @@ public sealed interface EventSubscriber<T : Any> {
     public val type: KType
 
     /**
-     * The post order of the subscriber
+     * The post order of the subscriber.
+     * A higher value means that the subscriber will be invoked later in the subscriber chain.
      */
     public val postOrder: Int
 
     /**
-     * The callback of the event subscriber
+     * The callback of the event subscriber.
+     * Is called for all events whose type is either [type] or a subtype of it.
      */
     public val callback: (event: T) -> Unit
 }
