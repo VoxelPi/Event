@@ -254,21 +254,21 @@ class EventScopeImplTest {
         val scopeC = scopeA.createSubScope()
         scopeB.register(scopeC)
 
-        var handledC = false
-        scopeC.on<Any> { handledC = true }
+        var handledCCounter = 0
+        scopeC.on<Any> { ++handledCCounter }
 
         scopeR.post(Unit)
-        assertEquals(true, handledC)
+        assertEquals(1, handledCCounter)
 
         scopeA.unregister(scopeC)
-        handledC = false
+        handledCCounter = 0
         scopeR.post(Unit)
-        assertEquals(true, handledC)
+        assertEquals(1, handledCCounter)
 
         scopeB.unregister(scopeC)
-        handledC = false
+        handledCCounter = 0
         scopeR.post(Unit)
-        assertEquals(false, handledC)
+        assertEquals(0, handledCCounter)
     }
 
     @Test
