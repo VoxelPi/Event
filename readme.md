@@ -4,7 +4,24 @@
 [![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/net.voxelpi.event/event?server=https%3A%2F%2Frepo.voxelpi.net&nexusVersion=3&style=for-the-badge&label=stable&color=blue)]()
 [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/net.voxelpi.event/event?server=https%3A%2F%2Frepo.voxelpi.net&nexusVersion=3&style=for-the-badge&label=dev)]()
 
-A simple event bus.
+*Event* is a graph-based event bus with subscriber priority sorting.
+
+<img width="200px" src="doc/img/event_propagation.png" align="right" alt="The propagation of an event">
+
+The basic building blocks of the event bus are the so-called *Event Scopes*. 
+An event scope provides the functionality to post events as well as to listen to specific events based on their type.
+
+A structured event bus is created by linking together multiple event scopes into a graph-like structure,
+where each event scope is represented by a single node and can have any number of child- and parent event scopes.
+
+If an event is posted to an event scope, it is also forwarded to all parent- and child scopes of that scope. 
+If an event scope receives an event from a parent scope, the event is forwarded to all of its child scopes. 
+Similarly, if an event scope receives an event from a child scope, the event is forwarded to all of its parent scopes. 
+This means that events always propagate "up" or "down" in the graph but never "sideways".
+
+From the event scopes reached by the event, all event subscribers listening to that event are then collected 
+into a single list, sorted by their priority, and executed in that order.
+<br clear="right"/>
 
 ## Getting Started
 
