@@ -15,14 +15,9 @@ public sealed interface EventScope {
     public fun postEvent(event: Any, eventType: KType): PostResult
 
     /**
-     * Registers an event subscribers for events of the given [type] with the given [postOrder] and [callback].
+     * Registers an event subscription for events of the given [type] with the given [postOrder] and [callback].
      */
-    public fun <T : Any> handleEvent(type: KType, postOrder: Int = 0, callback: (T) -> Unit): EventSubscriber<T>
-
-    /**
-     * Unregisters the given [subscriber] from this scope.
-     */
-    public fun unregister(subscriber: EventSubscriber<*>)
+    public fun <T : Any> handleEvent(type: KType, postOrder: Int = 0, callback: (T) -> Unit): EventSubscription<T>
 
     /**
      * Registers the given [scope] as a sub scope.
@@ -42,7 +37,7 @@ public sealed interface EventScope {
 
     /**
      * Adds all methods of the given [instance] that are annotated with the [net.voxelpi.event.annotation.Subscribe] annotation
-     * as event subscribers to a new sub scope of this scope.
+     * as event subscriptions to a new sub scope of this scope.
      *
      * Only methods that are annotated with the [net.voxelpi.event.annotation.Subscribe] annotation,
      * take exactly one parameter and return void.
@@ -63,20 +58,20 @@ public sealed interface EventScope {
     public fun annotatedSubScope(instance: Any): EventScope?
 
     /**
-     * Returns all event types that have at least one subscriber registered in this scope or any of its parent or child scopes.
+     * Returns all event types that have at least one subscription registered in this scope or any of its parent or child scopes.
      */
     public fun subscribedEventTypes(): Set<KType>
 
     /**
-     * Returns the collective event subscribers of this event scope and its parent/child scopes.
+     * Returns the collective event subscriptions of this event scope and its parent/child scopes.
      */
-    public fun collectiveSubscribers(): Collection<EventSubscriber<*>>
+    public fun collectiveSubscriptions(): Collection<EventSubscription<*>>
 
     /**
-     * Returns the collective event subscribers of this event scope and its parent/child scope,
+     * Returns the collective event subscriptions of this event scope and its parent/child scope,
      * that listen to events of the given [eventType].
      */
-    public fun collectiveSubscribersForType(eventType: KType): Collection<EventSubscriber<*>>
+    public fun collectiveSubscriptionsForType(eventType: KType): Collection<EventSubscription<*>>
 }
 
 /**
@@ -94,16 +89,16 @@ public inline fun <reified T : Any> EventScope.post(event: T): PostResult {
 }
 
 /**
- * Registers an event subscriber for events of the given type [T] with the given [postOrder] and [callback].
+ * Registers an event subscription for events of the given type [T] with the given [postOrder] and [callback].
  */
-public inline fun <reified T : Any> EventScope.on(postOrder: Int = 0, noinline callback: (T) -> Unit): EventSubscriber<T> {
+public inline fun <reified T : Any> EventScope.on(postOrder: Int = 0, noinline callback: (T) -> Unit): EventSubscription<T> {
     return handleEvent(typeOf<T>(), postOrder, callback)
 }
 
 /**
- * Returns the collective event subscribers of this event scope and its parent/child scope,
+ * Returns the collective event subscriptions of this event scope and its parent/child scope,
  * that listen to events of the given type [T].
  */
-public inline fun <reified T : Any> EventScope.collectiveSubscribersForType(): Collection<EventSubscriber<*>> {
-    return collectiveSubscribersForType(typeOf<T>())
+public inline fun <reified T : Any> EventScope.collectiveSubscriptionsForType(): Collection<EventSubscription<*>> {
+    return collectiveSubscriptionsForType(typeOf<T>())
 }

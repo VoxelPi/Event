@@ -23,7 +23,7 @@ public sealed interface PostResult {
      * Some subscribers threw events whilst posting the event.
      */
     public data class Failure(
-        val exceptions: Map<EventSubscriber<*>, Throwable>,
+        val exceptions: Map<EventSubscription<*>, Throwable>,
     ) : PostResult {
 
         override fun wasSuccessful(): Boolean {

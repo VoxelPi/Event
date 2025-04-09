@@ -16,44 +16,44 @@ internal class EventScopeImpl(
 
     private val parentScopes: MutableList<EventScopeImpl> = mutableListOf()
     private val subScopes: MutableList<EventScopeImpl> = mutableListOf()
-    private val subscribers: SubscriberCache = mutableMapOf()
+    private val subscriptions: SubscriptionsCache = mutableMapOf()
 
-    private val childSubscriberCache: SubscriberCache = mutableMapOf()
-    private val parentSubscriberCache: SubscriberCache = mutableMapOf()
-    private val eventTypeCache: SubscriberCache = mutableMapOf()
+    private val childSubscriptionsCache: SubscriptionsCache = mutableMapOf()
+    private val parentSubscriptionsCache: SubscriptionsCache = mutableMapOf()
+    private val eventTypeCache: SubscriptionsCache = mutableMapOf()
 
     /**
-     * Returns all subscribers that should be used by this scope.
+     * Returns all subscriptions that should be used by this scope.
      */
-    fun subscribersForCurrentScope(): List<EventSubscriberImpl<*>> {
-        val subscribers = subscribers.values.flatten().toMutableList()
-        subscribers.addAll(parentSubscriberCache.values.flatten())
-        subscribers.addAll(childSubscriberCache.values.flatten())
-        return subscribers
+    fun subscriptionsForCurrentScope(): List<EventSubscriptionImpl<*>> {
+        val subscriptions = subscriptions.values.flatten().toMutableList()
+        subscriptions.addAll(parentSubscriptionsCache.values.flatten())
+        subscriptions.addAll(childSubscriptionsCache.values.flatten())
+        return subscriptions
     }
 
     /**
      * Returns all subscribes that should be used by the sub scopes.
      */
-    fun subscribersForSubScopes(): List<EventSubscriberImpl<*>> {
-        val subscribers = subscribers.values.flatten().toMutableList()
-        subscribers.addAll(parentSubscriberCache.values.flatten())
-        return subscribers
+    fun subscriptionsForSubScopes(): List<EventSubscriptionImpl<*>> {
+        val subscriptions = subscriptions.values.flatten().toMutableList()
+        subscriptions.addAll(parentSubscriptionsCache.values.flatten())
+        return subscriptions
     }
 
     /**
-     * Returns all subscribers that should be used by the parent scopes.
+     * Returns all subscriptions that should be used by the parent scopes.
      */
-    fun subscribersForParentScope(): List<EventSubscriberImpl<*>> {
-        val subscribers = subscribers.values.flatten().toMutableList()
-        subscribers.addAll(childSubscriberCache.values.flatten())
-        return subscribers
+    fun subscriptionsForParentScope(): List<EventSubscriptionImpl<*>> {
+        val subscriptions = subscriptions.values.flatten().toMutableList()
+        subscriptions.addAll(childSubscriptionsCache.values.flatten())
+        return subscriptions
     }
 
     override fun subscribedEventTypes(): Set<KType> {
-        val types = subscribers.keys.toMutableSet()
-        types.addAll(childSubscriberCache.keys)
-        types.addAll(parentSubscriberCache.keys)
+        val types = subscriptions.keys.toMutableSet()
+        types.addAll(childSubscriptionsCache.keys)
+        types.addAll(parentSubscriptionsCache.keys)
         return types
     }
 
@@ -61,8 +61,8 @@ internal class EventScopeImpl(
      * Returns all subscribed event types that should be seen by the parent scopes.
      */
     fun subscribedEventTypesForParentScope(): Set<KType> {
-        val types = subscribers.keys.toMutableSet()
-        types.addAll(childSubscriberCache.keys)
+        val types = subscriptions.keys.toMutableSet()
+        types.addAll(childSubscriptionsCache.keys)
         return types
     }
 
@@ -70,40 +70,40 @@ internal class EventScopeImpl(
      * Returns all subscribed event types that should be seen by the child scopes.
      */
     fun subscribedEventTypesForChildScope(): Set<KType> {
-        val types = subscribers.keys.toMutableSet()
-        types.addAll(parentSubscriberCache.keys)
+        val types = subscriptions.keys.toMutableSet()
+        types.addAll(parentSubscriptionsCache.keys)
         return types
     }
 
-    override fun collectiveSubscribers(): Collection<EventSubscriber<*>> {
-        return subscribersForCurrentScope()
+    override fun collectiveSubscriptions(): Collection<EventSubscription<*>> {
+        return subscriptionsForCurrentScope()
     }
 
-    override fun collectiveSubscribersForType(eventType: KType): TreeSet<EventSubscriberImpl<*>> {
+    override fun collectiveSubscriptionsForType(eventType: KType): TreeSet<EventSubscriptionImpl<*>> {
         if (eventType in eventTypeCache) {
             return eventTypeCache[eventType]!!
         }
 
-        val subscribers = subscriberTreeSet()
-        subscribers.addAll(this.subscribers.filterKeys { type -> eventType.isSubtypeOf(type) }.values.flatten())
-        subscribers.addAll(parentSubscriberCache.filterKeys { type -> eventType.isSubtypeOf(type) }.values.flatten())
-        subscribers.addAll(childSubscriberCache.filterKeys { type -> eventType.isSubtypeOf(type) }.values.flatten())
-        eventTypeCache[eventType] = subscribers
-        return subscribers
+        val subscriptions = subscriptionTreeSet()
+        subscriptions.addAll(this.subscriptions.filterKeys { type -> eventType.isSubtypeOf(type) }.values.flatten())
+        subscriptions.addAll(parentSubscriptionsCache.filterKeys { type -> eventType.isSubtypeOf(type) }.values.flatten())
+        subscriptions.addAll(childSubscriptionsCache.filterKeys { type -> eventType.isSubtypeOf(type) }.values.flatten())
+        eventTypeCache[eventType] = subscriptions
+        return subscriptions
     }
 
     @Suppress("UNCHECKED_CAST")
     override fun postEvent(event: Any, eventType: KType): PostResult {
-        // Get relevant subscribers from the cache.
-        val eventSubscribers = collectiveSubscribersForType(eventType)
+        // Get relevant subscriptions from the cache.
+        val eventSubscriptions = collectiveSubscriptionsForType(eventType)
 
         // Post event to subscribers.
-        val exceptions = mutableMapOf<EventSubscriber<*>, Throwable>()
-        for (subscriber in eventSubscribers) {
+        val exceptions = mutableMapOf<EventSubscription<*>, Throwable>()
+        for (subscription in eventSubscriptions) {
             try {
-                (subscriber as EventSubscriberImpl<Any>).callback.invoke(event)
+                (subscription as EventSubscriptionImpl<Any>).callback.invoke(event)
             } catch (exception: Exception) {
-                exceptions[subscriber] = exception
+                exceptions[subscription] = exception
             }
         }
 
@@ -115,10 +115,17 @@ internal class EventScopeImpl(
         }
     }
 
-    override fun <T : Any> handleEvent(type: KType, postOrder: Int, callback: (T) -> Unit): EventSubscriberImpl<T> {
-        val subscriber = EventSubscriberImpl(type, postOrder, UUID.randomUUID(), callback)
-        register(subscriber)
-        return subscriber
+    override fun <T : Any> handleEvent(type: KType, postOrder: Int, callback: (T) -> Unit): EventSubscriptionImpl<T> {
+        val subscription = EventSubscriptionImpl<T>(this, type, postOrder, UUID.randomUUID(), callback)
+
+        if (subscription.type in subscriptions) {
+            subscriptions[subscription.type]!!.add(subscription)
+        } else {
+            subscriptions[subscription.type] = sortedSetOf(EventSubscriptionComparator, subscription)
+        }
+        cacheRegisterSubscription(subscription)
+
+        return subscription
     }
 
     override fun registerAnnotated(instance: Any): EventScope {
@@ -136,15 +143,14 @@ internal class EventScopeImpl(
             function.findAnnotation<Subscribe>() != null && function.parameters.size == 2 && function.returnType == typeOf<Unit>()
         }
 
-        // Generate subscribers
+        // Generate subscriptions
         for (function in functions) {
             val subscription = function.findAnnotation<Subscribe>()!!
             val postOrder = subscription.postOrder
             val type = function.parameters[1].type
-            val subscriber = EventSubscriberImpl<Any>(type, postOrder) { event ->
+            scope.handleEvent<Any>(type, postOrder) { event ->
                 function.call(instance, event)
             }
-            scope.register(subscriber)
         }
 
         // Register scope.
@@ -161,25 +167,19 @@ internal class EventScopeImpl(
         return subScopes.find { it.annotatedInstance == instance }
     }
 
-    fun register(subscriber: EventSubscriberImpl<*>) {
-        if (subscriber.type in subscribers) {
-            subscribers[subscriber.type]!!.add(subscriber)
-        } else {
-            subscribers[subscriber.type] = sortedSetOf(EventSubscriberComparator, subscriber)
-        }
-        cacheRegisterSubscriber(subscriber)
-    }
+    /**
+     * Unregisters the given [subscription] from this scope.
+     */
+    fun unregisterSubscription(subscription: EventSubscription<*>) {
+        require(subscription is EventSubscriptionImpl)
 
-    override fun unregister(subscriber: EventSubscriber<*>) {
-        require(subscriber is EventSubscriberImpl)
-
-        // Unregister subscriber.
-        subscribers[subscriber.type]?.remove(subscriber)
-        if (subscribers[subscriber.type]?.isEmpty() == true) {
-            subscribers.remove(subscriber.type)
+        // Unregister subscription.
+        subscriptions[subscription.type]?.remove(subscription)
+        if (subscriptions[subscription.type]?.isEmpty() == true) {
+            subscriptions.remove(subscription.type)
         }
 
-        cacheUnregisterSubscriber(subscriber)
+        cacheUnregisterSubscription(subscription)
     }
 
     override fun register(scope: EventScope) {
@@ -208,79 +208,79 @@ internal class EventScopeImpl(
         return scope
     }
 
-    private fun cacheRegisterSubscriber(subscriber: EventSubscriberImpl<*>) {
-        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscriber.type) }
+    private fun cacheRegisterSubscription(subscription: EventSubscriptionImpl<*>) {
+        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscription.type) }
 
         for (childScope in subScopes) {
-            childScope.cacheRegisterSubscriberByParent(subscriber)
+            childScope.cacheRegisterSubscriptionByParent(subscription)
         }
         for (parentScope in parentScopes) {
-            parentScope.cacheRegisterSubscriberByChild(subscriber)
+            parentScope.cacheRegisterSubscriptionByChild(subscription)
         }
     }
 
-    private fun cacheRegisterSubscriberByParent(subscriber: EventSubscriberImpl<*>) {
-        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscriber.type) }
+    private fun cacheRegisterSubscriptionByParent(subscription: EventSubscriptionImpl<*>) {
+        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscription.type) }
 
-        if (subscriber.type in parentSubscriberCache) {
-            parentSubscriberCache[subscriber.type]!!.add(subscriber)
+        if (subscription.type in parentSubscriptionsCache) {
+            parentSubscriptionsCache[subscription.type]!!.add(subscription)
         } else {
-            parentSubscriberCache[subscriber.type] = sortedSetOf(EventSubscriberComparator, subscriber)
+            parentSubscriptionsCache[subscription.type] = sortedSetOf(EventSubscriptionComparator, subscription)
         }
 
         for (childScope in subScopes) {
-            childScope.cacheRegisterSubscriberByParent(subscriber)
+            childScope.cacheRegisterSubscriptionByParent(subscription)
         }
     }
 
-    private fun cacheRegisterSubscriberByChild(subscriber: EventSubscriberImpl<*>) {
-        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscriber.type) }
+    private fun cacheRegisterSubscriptionByChild(subscription: EventSubscriptionImpl<*>) {
+        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscription.type) }
 
-        if (subscriber.type in childSubscriberCache) {
-            childSubscriberCache[subscriber.type]!!.add(subscriber)
+        if (subscription.type in childSubscriptionsCache) {
+            childSubscriptionsCache[subscription.type]!!.add(subscription)
         } else {
-            childSubscriberCache[subscriber.type] = sortedSetOf(EventSubscriberComparator, subscriber)
+            childSubscriptionsCache[subscription.type] = sortedSetOf(EventSubscriptionComparator, subscription)
         }
 
         for (parentScope in parentScopes) {
-            parentScope.cacheRegisterSubscriberByChild(subscriber)
+            parentScope.cacheRegisterSubscriptionByChild(subscription)
         }
     }
 
-    private fun cacheUnregisterSubscriber(subscriber: EventSubscriberImpl<*>) {
-        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscriber.type) }
+    private fun cacheUnregisterSubscription(subscription: EventSubscriptionImpl<*>) {
+        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscription.type) }
 
         for (childScope in subScopes) {
-            childScope.cacheUnregisterSubscriberByParent(subscriber)
+            childScope.cacheUnregisterSubscriptionByParent(subscription)
         }
         for (parentScope in parentScopes) {
-            parentScope.cacheUnregisterSubscriberByChild(subscriber)
+            parentScope.cacheUnregisterSubscriptionByChild(subscription)
         }
     }
 
-    private fun cacheUnregisterSubscriberByParent(subscriber: EventSubscriberImpl<*>) {
-        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscriber.type) }
+    private fun cacheUnregisterSubscriptionByParent(subscription: EventSubscriptionImpl<*>) {
+        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscription.type) }
 
-        parentSubscriberCache[subscriber.type]?.remove(subscriber)
-        if (parentSubscriberCache[subscriber.type]?.isEmpty() == true) {
-            parentSubscriberCache.remove(subscriber.type)
+        parentSubscriptionsCache[subscription.type]?.remove(subscription)
+        if (parentSubscriptionsCache[subscription.type]?.isEmpty() == true) {
+            parentSubscriptionsCache.remove(subscription.type)
         }
 
         for (childScope in subScopes) {
-            childScope.cacheUnregisterSubscriberByParent(subscriber)
+            childScope.cacheUnregisterSubscriptionByParent(subscription)
         }
     }
 
-    private fun cacheUnregisterSubscriberByChild(subscriber: EventSubscriberImpl<*>) {
-        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscriber.type) }
+    private fun cacheUnregisterSubscriptionByChild(subscription: EventSubscriptionImpl<*>) {
+        eventTypeCache.keys.removeAll { it.isSubtypeOf(subscription.type) }
 
-        childSubscriberCache[subscriber.type]?.remove(subscriber)
-        if (childSubscriberCache[subscriber.type]?.isEmpty() == true) {
-            childSubscriberCache.remove(subscriber.type)
+        childSubscriptionsCache[subscription.type]?.remove(subscription)
+        if (childSubscriptionsCache[subscription.type]?.isEmpty() == true) {
+            childSubscriptionsCache.remove(subscription.type)
         }
 
         for (parentScope in parentScopes) {
-            parentScope.cacheUnregisterSubscriberByChild(subscriber)
+            parentScope.cacheUnregisterSubscriptionByChild(subscription)
         }
     }
 
@@ -288,9 +288,9 @@ internal class EventScopeImpl(
         val parentTypes = parentScope.subscribedEventTypesForChildScope()
         eventTypeCache.keys.removeAll { eventType -> parentTypes.any { eventType.isSubtypeOf(it) } }
 
-        // Merge into parent subscriber cache.
-        parentSubscriberCache.mergeAll(parentScope.subscribers)
-        parentSubscriberCache.mergeAll(parentScope.parentSubscriberCache)
+        // Merge into parent subscription cache.
+        parentSubscriptionsCache.mergeAll(parentScope.subscriptions)
+        parentSubscriptionsCache.mergeAll(parentScope.parentSubscriptionsCache)
 
         // Forward cache update to all child scopes.
         for (childScope in subScopes) {
@@ -302,9 +302,9 @@ internal class EventScopeImpl(
         val childTypes = childScope.subscribedEventTypesForParentScope()
         eventTypeCache.keys.removeAll { eventType -> childTypes.any { eventType.isSubtypeOf(it) } }
 
-        // Merge into child subscriber cache.
-        childSubscriberCache.mergeAll(childScope.subscribers)
-        childSubscriberCache.mergeAll(childScope.childSubscriberCache)
+        // Merge into child subscription cache.
+        childSubscriptionsCache.mergeAll(childScope.subscriptions)
+        childSubscriptionsCache.mergeAll(childScope.childSubscriptionsCache)
 
         // Forward cache update to all parent scopes.
         for (parentScope in parentScopes) {
@@ -316,11 +316,11 @@ internal class EventScopeImpl(
         val parentTypes = parentScope.subscribedEventTypesForChildScope()
         eventTypeCache.keys.removeAll { eventType -> parentTypes.any { eventType.isSubtypeOf(it) } }
 
-        // Rebuild parent subscriber cache.
-        parentSubscriberCache.clear()
+        // Rebuild parent subscription cache.
+        parentSubscriptionsCache.clear()
         for (scope in parentScopes) {
-            parentSubscriberCache.mergeAll(scope.subscribers)
-            parentSubscriberCache.mergeAll(scope.parentSubscriberCache)
+            parentSubscriptionsCache.mergeAll(scope.subscriptions)
+            parentSubscriptionsCache.mergeAll(scope.parentSubscriptionsCache)
         }
 
         // Forward cache update to all child scopes.
@@ -333,11 +333,11 @@ internal class EventScopeImpl(
         val childTypes = childScope.subscribedEventTypesForParentScope()
         eventTypeCache.keys.removeAll { eventType -> childTypes.any { eventType.isSubtypeOf(it) } }
 
-        // Rebuild child subscriber cache.
-        childSubscriberCache.clear()
+        // Rebuild child subscription cache.
+        childSubscriptionsCache.clear()
         for (scope in subScopes) {
-            childSubscriberCache.mergeAll(scope.subscribers)
-            childSubscriberCache.mergeAll(scope.childSubscriberCache)
+            childSubscriptionsCache.mergeAll(scope.subscriptions)
+            childSubscriptionsCache.mergeAll(scope.childSubscriptionsCache)
         }
 
         // Forward cache update to all parent scopes.
@@ -346,8 +346,8 @@ internal class EventScopeImpl(
         }
     }
 
-    object EventSubscriberComparator : Comparator<EventSubscriberImpl<*>> {
-        override fun compare(a: EventSubscriberImpl<*>, b: EventSubscriberImpl<*>): Int {
+    object EventSubscriptionComparator : Comparator<EventSubscriptionImpl<*>> {
+        override fun compare(a: EventSubscriptionImpl<*>, b: EventSubscriptionImpl<*>): Int {
             if (a.postOrder != b.postOrder) {
                 return a.postOrder.compareTo(b.postOrder)
             }
@@ -356,19 +356,19 @@ internal class EventScopeImpl(
     }
 }
 
-internal fun subscriberTreeSet(): TreeSet<EventSubscriberImpl<*>> {
-    return sortedSetOf(EventScopeImpl.EventSubscriberComparator)
+internal fun subscriptionTreeSet(): TreeSet<EventSubscriptionImpl<*>> {
+    return sortedSetOf(EventScopeImpl.EventSubscriptionComparator)
 }
 
-internal typealias SubscriberCache = MutableMap<KType, TreeSet<EventSubscriberImpl<*>>>
+internal typealias SubscriptionsCache = MutableMap<KType, TreeSet<EventSubscriptionImpl<*>>>
 
-internal fun SubscriberCache.mergeAll(cache2: SubscriberCache) {
-    for ((type, subscribers) in cache2) {
+internal fun SubscriptionsCache.mergeAll(cache2: SubscriptionsCache) {
+    for ((type, subscriptions) in cache2) {
         if (type in this) {
-            this[type]!!.addAll(subscribers)
+            this[type]!!.addAll(subscriptions)
         } else {
-            val set = subscriberTreeSet()
-            set.addAll(subscribers)
+            val set = subscriptionTreeSet()
+            set.addAll(subscriptions)
             this[type] = set
         }
     }

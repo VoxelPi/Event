@@ -17,9 +17,9 @@ class EventScopeImplTest {
         scope.on<Any> { _ ->
             handled = true
         }
-        assertEquals(1, scope.collectiveSubscribers().size)
-        assertEquals(1, scope.collectiveSubscribersForType<Any>().size)
-        assertEquals(1, scope.collectiveSubscribersForType<Unit>().size)
+        assertEquals(1, scope.collectiveSubscriptions().size)
+        assertEquals(1, scope.collectiveSubscriptionsForType<Any>().size)
+        assertEquals(1, scope.collectiveSubscriptionsForType<Unit>().size)
 
         scope.post(Unit)
         assertEquals(true, handled)
@@ -72,8 +72,8 @@ class EventScopeImplTest {
             handled = true
         }
 
-        assertEquals(1, scope.collectiveSubscribersForType<TypeA>().size)
-        assertEquals(1, scope.collectiveSubscribersForType<TypeB>().size)
+        assertEquals(1, scope.collectiveSubscriptionsForType<TypeA>().size)
+        assertEquals(1, scope.collectiveSubscriptionsForType<TypeB>().size)
 
         scope.post(TypeB())
         assertEquals(true, handled)
@@ -96,9 +96,9 @@ class EventScopeImplTest {
             handledNumber = true
         }
 
-        assertEquals(2, scope.collectiveSubscribersForType<List<Long>>().size)
-        assertEquals(2, scope.collectiveSubscribersForType<List<Int>>().size)
-        assertEquals(1, scope.collectiveSubscribersForType<List<Float>>().size)
+        assertEquals(2, scope.collectiveSubscriptionsForType<List<Long>>().size)
+        assertEquals(2, scope.collectiveSubscriptionsForType<List<Int>>().size)
+        assertEquals(1, scope.collectiveSubscriptionsForType<List<Float>>().size)
 
         scope.post(emptyList<Long>())
         assertEquals(false, handledInt)
@@ -107,7 +107,7 @@ class EventScopeImplTest {
     }
 
     @Test
-    fun `test multiple subscribers of same type`() {
+    fun `test multiple subscriptions of same type`() {
         val scope = eventScope()
 
         var handledA = false
@@ -119,7 +119,7 @@ class EventScopeImplTest {
             handledB = true
         }
 
-        assertEquals(2, scope.collectiveSubscribersForType<Any>().size)
+        assertEquals(2, scope.collectiveSubscriptionsForType<Any>().size)
 
         scope.post(Unit)
         assertEquals(true, handledA)
@@ -145,9 +145,9 @@ class EventScopeImplTest {
             handledSubSub = true
         }
 
-        assertEquals(3, scope.collectiveSubscribersForType<Any>().size)
-        assertEquals(3, subScope.collectiveSubscribersForType<Any>().size)
-        assertEquals(3, subSubScope.collectiveSubscribersForType<Any>().size)
+        assertEquals(3, scope.collectiveSubscriptionsForType<Any>().size)
+        assertEquals(3, subScope.collectiveSubscriptionsForType<Any>().size)
+        assertEquals(3, subSubScope.collectiveSubscriptionsForType<Any>().size)
 
         scope.post(Unit)
         assertEquals(true, handledMain)
@@ -187,7 +187,7 @@ class EventScopeImplTest {
         val test = Test()
         val subScope = scope.registerAnnotated(test)
         assertNotNull(subScope)
-        assertEquals(2, scope.collectiveSubscribersForType<String>().size)
+        assertEquals(2, scope.collectiveSubscriptionsForType<String>().size)
 
         val scope2 = scope.annotatedSubScope(test)
         assertEquals(subScope, scope2)
@@ -208,16 +208,16 @@ class EventScopeImplTest {
     }
 
     @Test
-    fun `test subscriber collection`() {
+    fun `test subscription collection`() {
         val parentScope = EventScopeImpl(null)
         val scope = parentScope.createSubScope()
         val childScope = scope.createSubScope()
         val siblingScope = parentScope.createSubScope()
 
-        val parentScopeSubscriber = parentScope.on<Any> { }
-        val scopeSubscriber = scope.on<Number> { }
-        val childScopeSubscriber = childScope.on<Int> { }
-        val siblingScopeSubscriber = siblingScope.on<String> { }
+        val parentScopeSub = parentScope.on<Any> { }
+        val scopeSub = scope.on<Number> { }
+        val childScopeSub = childScope.on<Int> { }
+        val siblingScopeSub = siblingScope.on<String> { }
 
         // Check that the event types are correctly collected.
         assertEquals(setOf(typeOf<Any>(), typeOf<Number>(), typeOf<Int>(), typeOf<String>()), parentScope.subscribedEventTypes())
@@ -234,11 +234,11 @@ class EventScopeImplTest {
             parentScope.subscribedEventTypesForParentScope(),
         )
 
-        // Check that the event subscribers are correctly collected.
-        assertEquals(setOf<EventSubscriber<*>>(scopeSubscriber, childScopeSubscriber), scope.subscribersForParentScope().toSet())
-        assertEquals(setOf(parentScopeSubscriber, scopeSubscriber, childScopeSubscriber), scope.subscribersForCurrentScope().toSet())
-        assertEquals(setOf(parentScopeSubscriber, scopeSubscriber), scope.subscribersForSubScopes().toSet())
-        assertEquals(setOf(parentScopeSubscriber, siblingScopeSubscriber), siblingScope.subscribersForCurrentScope().toSet())
+        // Check that the event subscriptions are correctly collected.
+        assertEquals(setOf<EventSubscription<*>>(scopeSub, childScopeSub), scope.subscriptionsForParentScope().toSet())
+        assertEquals(setOf(parentScopeSub, scopeSub, childScopeSub), scope.subscriptionsForCurrentScope().toSet())
+        assertEquals(setOf(parentScopeSub, scopeSub), scope.subscriptionsForSubScopes().toSet())
+        assertEquals(setOf(parentScopeSub, siblingScopeSub), siblingScope.subscriptionsForCurrentScope().toSet())
     }
 
     @Test
@@ -283,5 +283,21 @@ class EventScopeImplTest {
         }
         assertEquals(false, scope.post(Unit).wasSuccessful())
         assertThrows<PostResult.Failure.CombinedException> { scope.post(Unit).throwOnFailure() }
+    }
+
+    @Test
+    fun `test cancel subscription`() {
+        val scope = eventScope()
+
+        var counter = 0
+
+        val subscription = scope.on<Any> { counter++ }
+
+        scope.post(Unit)
+        assertEquals(1, counter)
+
+        subscription.cancel()
+        scope.post(Unit)
+        assertEquals(1, counter)
     }
 }
