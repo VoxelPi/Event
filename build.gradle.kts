@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.dokka)
+    alias(libs.plugins.dokka.javadoc)
     alias(libs.plugins.ktlint)
     `java-library`
     `maven-publish`
@@ -27,10 +28,6 @@ dependencies {
 }
 
 tasks {
-    dokkaHtml.configure {
-        outputDirectory.set(layout.buildDirectory.dir("docs"))
-    }
-
     test {
         useJUnitPlatform()
     }
@@ -52,12 +49,12 @@ kotlin {
 }
 
 val javadocJar by tasks.register<Jar>("dokkaJavadocJar") {
-    dependsOn(tasks.dokkaJavadoc)
-    from(tasks.dokkaJavadoc.flatMap { it.outputDirectory })
+    dependsOn(tasks.dokkaGeneratePublicationJavadoc)
     archiveClassifier.set("javadoc")
+    from(tasks.dokkaGeneratePublicationJavadoc.flatMap { it.outputDirectory })
 }
 
-val sourcesJar by tasks.creating(Jar::class) {
+val sourcesJar by tasks.registering(Jar::class) {
     archiveClassifier.set("sources")
     from(sourceSets.getByName("main").allSource)
 }
