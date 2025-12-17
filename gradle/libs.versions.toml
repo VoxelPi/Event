@@ -1,10 +1,10 @@
 [versions]
-junit = "5.12.1"
-kotlin = "2.1.20"
+junit = "6.0.1"
+kotlin = "2.3.0"
 
 # Plugins
-dokka = "2.0.0"
-ktlint = "12.2.0"
+dokka = "2.1.0"
+ktlint = "14.0.1"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
